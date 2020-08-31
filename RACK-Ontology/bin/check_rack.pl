@@ -1,7 +1,9 @@
 :- use_module(library(semweb/rdf11)).
 :- use_module(rack_model).
+:- use_module(analysis/unidentified_hazard).
 
 check_rack :-
+    check_unidentified_hazards,
     findall(C, check_missing_notes(C), CS),
     findall(NPC, check_not_prov_s(NPC), NPCS),
     findall(MI, check_instance_property_violations(MI), MIS),

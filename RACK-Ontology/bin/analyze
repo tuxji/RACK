@@ -3,6 +3,7 @@
 :- initialization(main, main).
 
 :- use_module(library(optparse)).
+:- use_module(paths).
 :- consult([analyze_rack,common_opts]).
 
 main :-
