@@ -16,7 +16,6 @@ git clone \
 cd semtk
 git checkout "${SEMTK_COMMIT}"
 mvn --quiet --batch-mode clean install -DskipTests
-bash build.sh
 cp "distribution/target/semtk-opensource-${SEMTK_VERSION}-bin.tar.gz" "${rack_dir}/packer/files/semtk-opensource-bin.tar.gz"
 
 popd || exit 1
