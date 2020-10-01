@@ -43,6 +43,10 @@ jobs:
           pylint .
           mypy .
 
+      - shell: bash
+        name: Lint the ontology
+        run: bash ci/lint-ontology.sh
+
   build:
     name: Build and test RACK-in-a-Box Docker
     runs-on: ubuntu-latest
