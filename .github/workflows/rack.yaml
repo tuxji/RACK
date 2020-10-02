@@ -46,6 +46,7 @@ jobs:
       - shell: bash
         name: Lint the ontology
         run: bash ci/lint-ontology.sh
+        continue-on-error: true
 
   build:
     name: Build and test RACK-in-a-Box Docker
