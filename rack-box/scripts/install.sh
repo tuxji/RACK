@@ -3,7 +3,7 @@
 # Exit if anything goes wrong
 
 set -eo pipefail
-export USER=ubuntu
+export USER=${USER:-ubuntu}
 cd /tmp/files
 
 # Execute this part of the script only if we're building a Docker image
@@ -26,7 +26,7 @@ if [ "${PACKER_BUILDER_TYPE}" == "docker" ]; then
 
     # Create user
 
-    adduser --disabled-password --gecos '' $USER
+    adduser --disabled-password --gecos '' "${USER}"
 
 fi
 
@@ -35,11 +35,11 @@ fi
 tar xfzC fuseki.tar.gz /opt
 rm fuseki.tar.gz
 mv /opt/apache-jena-fuseki-3.16.0 /opt/fuseki
-tar xfzC rack.tar.gz /home/${USER}
+tar xfzC rack.tar.gz "/home/${USER}"
 rm rack.tar.gz
-tar xfzC semtk.tar.gz /home/${USER}
+tar xfzC semtk.tar.gz "/home/${USER}"
 rm semtk.tar.gz
-mv ENV_OVERRIDE /home/${USER}/semtk-opensource
+mv ENV_OVERRIDE "/home/${USER}/semtk-opensource"
 
 # Set up and start Fuseki system service
 
@@ -52,7 +52,7 @@ systemctl start fuseki
 
 # Initialize SemTK environment variables
 
-cd /home/${USER}/semtk-opensource
+cd "/home/${USER}/semtk-opensource"
 chmod 755 ./*.sh
 export SERVER_ADDRESS=localhost
 export SERVICE_HOST=localhost
@@ -74,13 +74,16 @@ done
 # Install the RACK landing page and SemTK webapps
 
 export WEBAPPS=/var/www/html
-./updateWebapps.sh ${WEBAPPS}
-mv /tmp/files/{documentation.html,index.html,style.css} ${WEBAPPS}
+if ! [[ -f ${WEBAPPS} ]]; then
+  mkdir -p "${WEBAPPS}"
+fi
+./updateWebapps.sh "${WEBAPPS}"
+mv /tmp/files/{documentation.html,index.html,style.css} "${WEBAPPS}"
 
 # Change file ownerships since all SemTK code runs as non-root ${USER}
 
-chown -R ${USER}.${USER} /home/${USER}
-chown -R ${USER}.${USER} ${WEBAPPS}
+chown -R "${USER}.${USER}" "/home/${USER}"
+chown -R "${USER}.${USER}" "${WEBAPPS}"
 
 # Wait for Fuseki to become ready
 
@@ -128,7 +131,12 @@ done
 
 # Setup the RACK dataset using the RACK CLI
 
-cd /home/${USER}/RACK/RACK-Ontology/cli
+cd "/home/${USER}/RACK/RACK-Ontology/cli"
 # shellcheck disable=SC1091
 source venv/bin/activate
+# TODO(lb): Why is this necessary in Github Actions?
+if ! is_bin_on_path rack; then
+    pip install -r requirements.txt
+    python3 setup.py --quiet install
+fi
 ./setup-rack.sh

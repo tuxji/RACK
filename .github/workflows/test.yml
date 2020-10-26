@@ -1,0 +1,76 @@
+name: Test RACK
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Check out RACK source
+      uses: actions/checkout@v2
+      with:
+        repository: ge-high-assurance/RACK
+        token: ${{ secrets.RACK_CI_PAT }}
+        path: RACK
+
+    - name: Cache Fuseki distribution
+      uses: actions/cache@v2
+      id: cache-fuseki
+      with:
+        path: RACK/rack-box/files/fuseki.tar.gz
+        key: fuseki-3.16.0
+
+    - name: Cache RACK CLI
+      uses: actions/cache@v2
+      id: cache-rack-cli
+      with:
+        path: RACK/rack-box/files/rack.tar.gz
+        key: rack-cli-${{ hashFiles('RACK/RACK-Ontology/**', 'RACK/nodegroups/**') }}
+
+    - name: Cache SemTK distribution
+      uses: actions/cache@v2
+      id: cache-semtk
+      with:
+        path: RACK/rack-box/files/semtk.tar.gz
+        key: semtk-2.2.2-SNAPSHOT-v3
+
+    - name: Download Fuseki distribution
+      if: steps.cache-fuseki.outputs.cache-hit != 'true'
+      run: curl -LSs https://apache.claz.org/jena/binaries/apache-jena-fuseki-3.16.0.tar.gz -o RACK/rack-box/files/fuseki.tar.gz
+
+    - name: Package RACK CLI
+      if: steps.cache-rack-cli.outputs.cache-hit != 'true'
+      run: |
+        sudo apt-get install -y python3-virtualenv
+        cd RACK/RACK-Ontology/cli
+        virtualenv venv
+        source venv/bin/activate
+        pip3 install -r requirements.txt
+        python3 setup.py --quiet install
+        find venv/bin -type f | xargs perl -p -i -e 's|${{ github.workspace }}|/home/ubuntu|g'
+        cd ${{ github.workspace }}
+        tar cfz RACK/rack-box/files/rack.tar.gz --exclude=.git --exclude=.github --exclude=rack-box --exclude=tests --exclude=tools RACK
+
+    - name: Download SemTK distribution
+      if: steps.cache-semtk.outputs.cache-hit != 'true'
+      run: curl -LSs 'https://oss.sonatype.org/service/local/artifact/maven/content?r=snapshots&g=com.ge.research.semtk&a=distribution&v=2.2.2-SNAPSHOT&c=bin&e=tar.gz' -o RACK/rack-box/files/semtk.tar.gz
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install RACK
+      run: |
+        cd RACK/rack-box
+        touch ./files/{documentation.html,index.html,style.css,systemctl3.py}
+        ln -s $(realpath ./files) /tmp/files
+        export USER=$(whoami)
+        bash scripts/install.sh
+
+    - name: Run tests
+      run: |
+        cd RACK
+        python3 -m pip install -r tests/requirements.txt
+        pytest tests
