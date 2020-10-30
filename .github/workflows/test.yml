@@ -56,18 +56,13 @@ jobs:
       if: steps.cache-semtk.outputs.cache-hit != 'true'
       run: curl -LSs 'https://oss.sonatype.org/service/local/artifact/maven/content?r=snapshots&g=com.ge.research.semtk&a=distribution&v=2.2.2-SNAPSHOT&c=bin&e=tar.gz' -o RACK/rack-box/files/semtk.tar.gz
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
-
     - name: Install RACK
       run: |
         cd RACK/rack-box
         touch ./files/{documentation.html,index.html,style.css,systemctl3.py}
         ln -s $(realpath ./files) /tmp/files
         export USER=$(whoami)
-        bash scripts/install.sh
+        sudo bash scripts/install.sh
 
     - name: Run tests
       run: |
